@@ -37,6 +37,8 @@ fun! deb#read(debfile, member)
             return
         endif
         let l:unpcmp = "lzma -d | tar xfO "
+    elseif l:archmember == "data.tar.xz"
+        let l:unpcmp = "tar JxfO "
     elseif l:archmember == "data.tar"
         let l:unpcmp = "tar xfO "
     endif
@@ -228,9 +230,9 @@ fun! s:DebBrowseSelect()
 endfun
 
 " return data file name for debian package. This can be either data.tar.gz,
-" data.tar.bz2 or data.tar.lzma
+" data.tar.bz2, data.tar.lzma or data.tar.xz (plus unpacked data.tar)
 fun s:dataFileName(deb)
-    for fn in ["data.tar.gz", "data.tar.bz2", "data.tar.lzma", "data.tar"]
+    for fn in ["data.tar.gz", "data.tar.bz2", "data.tar.lzma", "data.tar.xz", "data.tar"]
         " [0:-2] is to remove trailing null character from command output
         if (system("ar t " . "'" . a:deb . "'" . " " . fn))[0:-2] == fn
             return fn
