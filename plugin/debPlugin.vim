@@ -16,3 +16,4 @@ endif
 let g:loaded_debPlugin = 1
 
 autocmd BufReadCmd   *.deb		call deb#browse(expand("<amatch>"))
+autocmd BufReadCmd   *.ipk		call deb#browse(expand("<amatch>"))
