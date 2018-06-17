@@ -1,7 +1,7 @@
 " Vim autoload file for browsing debian package.
 " copyright (C) 2007-2008, arno renevier <arenevier@fdn.fr>
 " Distributed under the GNU General Public License (version 2 or above)
-" Last Change: 2008 april 1
+" Last Change: 2018 June 17
 " 
 " Inspired by autoload/tar.vim by Charles E Campbell
 "
@@ -44,9 +44,16 @@ fun! deb#read(debfile, member)
     endif
 
     if a:member =~ '^\* ' " information control file
-        let l:archmember = "control.tar.gz"
+        let l:archmember = s:controlFileName(a:debfile)
+        if l:archmember == ""
+            echohl WarningMsg | echo "***error*** (deb#read) no valid control file found in debian archive"
+            return
+        elseif l:archmember == "control.tar.gz"
+            let l:unpcmp = "tar zxfO "
+        elseif l:archmember == "control.tar.xz"
+            let l:unpcmp = "tar JxfO "
+        endif
         let l:target = substitute(l:target, "^\* ", "", "")
-        let l:unpcmp = "tar zxfO "
     elseif a:member =~ ' -> ' " symbolic link
         let l:target = split(a:member,' -> ')[0]
         let l:linkname = split(a:member,' -> ')[1]
@@ -153,7 +160,16 @@ fun! deb#browse(file)
 
     " display information control files
     let l:infopos = line(".")
-    exe "silent read! ar p " . s:QuoteFile(a:file) . " control.tar.gz | tar zt"
+
+    let l:archmember = s:controlFileName(a:file)
+    if l:archmember == ""
+        echohl WarningMsg | echo "***error*** (deb#browse) no valid control file found in debian archive"
+        return
+    elseif l:archmember == "control.tar.gz"
+        exe "silent read! ar p " . s:QuoteFile(a:file) . " control.tar.gz | tar zt"
+    elseif l:archmember == "control.tar.xz"
+        exe "silent read! ar p " . s:QuoteFile(a:file) . " control.tar.xz | tar Jt"
+    endif
 
     $put=''
 
@@ -239,6 +255,18 @@ fun s:dataFileName(deb)
         endif
     endfor
     return "" " no debian data format in this archive
+endfun
+
+" return control file name for debian package. This can be either
+" control.tar.gz or control.tar.xz
+fun s:controlFileName(deb)
+    for fn in ["control.tar.gz", "control.tar.xz"]
+        " [0:-2] is to remove trailing null character from command output
+        if (system("ar t " . "'" . a:deb . "'" . " " . fn))[0:-2] == fn
+            return fn
+        endif
+    endfor
+    return "" " no debian control file in this archive
 endfun
 
 fun s:QuoteFile(file)
